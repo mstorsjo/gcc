@@ -47,6 +47,7 @@ __cxa_thread_atexit (void (_GLIBCXX_CDTOR_CALLABI *dtor)(void *),
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #endif
+#include <stdio.h>
 
 // Simplify it a little for this file.
 #ifndef _GLIBCXX_CDTOR_CALLABI
@@ -95,6 +96,7 @@ namespace {
     while (e)
       {
 	elt *old_e = e;
+	fprintf(stderr, "libsupc++ calling dtor on obj %p\n", e->object); fflush(stderr);
 	e->destructor (e->object);
 #ifdef _GLIBCXX_THREAD_ATEXIT_WIN32
 	/* Decrement DLL count */
@@ -127,7 +129,10 @@ namespace {
   // key init/delete rather than atexit so that delete is run on dlclose.
   void key_init() {
     struct key_s {
-      key_s() { __gthread_key_create (&key, run); }
+      key_s() {
+	fprintf(stderr, "libsupc++ __ghtread_key_create\n");
+	__gthread_key_create (&key, run);
+      }
       ~key_s() { __gthread_key_delete (key); }
     };
     static key_s ks;

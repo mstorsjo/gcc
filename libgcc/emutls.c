@@ -29,6 +29,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #include "tm.h"
 #include "libgcc_tm.h"
 #include "gthr.h"
+#include <stdio.h>
 
 typedef unsigned int word __attribute__((mode(word)));
 typedef unsigned int pointer __attribute__((mode(pointer)));
@@ -86,10 +87,13 @@ emutls_destroy (void *ptr)
   pointer size = arr->size;
   pointer i;
 
+  fprintf(stderr, "emutls_destroy\n"); fflush(stderr);
   for (i = 0; i < size; ++i)
     {
-      if (arr->data[i])
+      if (arr->data[i]) {
+	fprintf(stderr, "emutls_destroy freeing %p\n", arr->data[i][-1]); fflush(stderr);
 	free (arr->data[i][-1]);
+      }
     }
 
   free (ptr);
@@ -101,6 +105,7 @@ emutls_init (void)
 #ifndef __GTHREAD_MUTEX_INIT
   __GTHREAD_MUTEX_INIT_FUNCTION (&emutls_mutex);
 #endif
+  fprintf(stderr, "emutls __ghtread_key_create\n");
   if (__gthread_key_create (&emutls_key, emutls_destroy) != 0)
     abort ();
 }
@@ -121,6 +126,7 @@ emutls_alloc (struct __emutls_object *obj)
 	abort ();
       ((void **) ptr)[0] = ptr;
       ret = ptr + sizeof (void *);
+      fprintf(stderr, "allocated %p for ret %p\n", ptr, ret);
     }
   else
     {
@@ -130,7 +136,9 @@ emutls_alloc (struct __emutls_object *obj)
       ret = (void *) (((pointer) (ptr + sizeof (void *) + obj->align - 1))
 		      & ~(pointer)(obj->align - 1));
       ((void **) ret)[-1] = ptr;
+      fprintf(stderr, "allocated %p for ret %p\n", ptr, ret);
     }
+  fflush(stderr);
 
   if (obj->templ)
     memcpy (ret, obj->templ, obj->size);
