@@ -34,6 +34,15 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   __thread void* __once_callable;
   __thread void (*__once_call)();
 
+# ifdef _WIN32
+  void** __once_callable_ptr() {
+    return &__once_callable;
+  }
+  void (**__once_call_ptr())() {
+    return &__once_call;
+  }
+# endif
+
   extern "C" void __once_proxy()
   {
     // The caller stored a function pointer in __once_call. If it requires

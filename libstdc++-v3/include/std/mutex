@@ -834,6 +834,11 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   extern __thread void* __once_callable;
   extern __thread void (*__once_call)();
 
+#  ifdef _WIN32
+  void** __once_callable_ptr();
+  void (**__once_call_ptr())();
+#  endif
+
   // RAII type to set up state for pthread_once call.
   struct once_flag::_Prepare_execution
   {
@@ -841,17 +846,31 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       explicit
       _Prepare_execution(_Callable& __c)
       {
+#  ifdef _WIN32
+        void*& __once_callable_ref = *__once_callable_ptr();
+        void (*&__once_call_ref)() = *__once_call_ptr();
+#  else
+        void*& __once_callable_ref = __once_callable;
+        void (*&__once_call_ref)() = __once_call;
+#  endif
 	// Store address in thread-local pointer:
-	__once_callable = std::__addressof(__c);
+	__once_callable_ref = std::__addressof(__c);
 	// Trampoline function to invoke the closure via thread-local pointer:
-	__once_call = [] { (*static_cast<_Callable*>(__once_callable))(); };
+	__once_call_ref = [] { (*static_cast<_Callable*>(__once_callable))(); };
       }
 
     ~_Prepare_execution()
     {
+#  ifdef _WIN32
+        void*& __once_callable_ref = *__once_callable_ptr();
+        void (*&__once_call_ref)() = *__once_call_ptr();
+#  else
+        void*& __once_callable_ref = __once_callable;
+        void (*&__once_call_ref)() = __once_call;
+#  endif
       // PR libstdc++/82481
-      __once_callable = nullptr;
-      __once_call = nullptr;
+      __once_callable_ref = nullptr;
+      __once_call_ref = nullptr;
     }
 
     _Prepare_execution(const _Prepare_execution&) = delete;
